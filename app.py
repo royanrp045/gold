@@ -133,6 +133,9 @@ selected_period = st.selectbox(
     "Pilih Periode Prediksi",
     available_dates[TIME_STEPS:]
 )
+selected_index = df[
+    df["date"].dt.strftime("%Y-%m") == selected_period
+].index[0]
 
 # =====================================================
 # INFORMASI PERIODE TERPILIH
