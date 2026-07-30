@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import plotly.graph_objects as go
+
 from tensorflow.keras.models import load_model
 
 # ==========================================================
-# KONFIGURASI HALAMAN
+# PAGE CONFIG
 # ==========================================================
 
 st.set_page_config(
@@ -14,110 +16,258 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📈 Prediksi Harga Emas Menggunakan GRU")
-st.markdown(
-    """
-Aplikasi ini digunakan untuk melakukan prediksi harga emas
-menggunakan model **GRU (Gated Recurrent Unit)** dengan
-mempertimbangkan variabel **USD** dan **Inflasi**.
-"""
-)
+# ==========================================================
+# CSS
+# ==========================================================
+
+st.markdown("""
+<style>
+
+.main{
+    background-color:#0f172a;
+}
+
+.block-container{
+    padding-top:2rem;
+    padding-bottom:2rem;
+    max-width:1200px;
+}
+
+.title-box{
+    background:#172554;
+    border-radius:18px;
+    padding:30px;
+    text-align:center;
+    color:white;
+    box-shadow:0px 0px 20px rgba(0,0,0,.35);
+}
+
+.card{
+
+    background:#1e293b;
+
+    padding:20px;
+
+    border-radius:15px;
+
+    box-shadow:0px 0px 15px rgba(0,0,0,.25);
+
+}
+
+.result-card{
+
+    background:#172554;
+
+    color:white;
+
+    text-align:center;
+
+    border-radius:15px;
+
+    padding:35px;
+
+    box-shadow:0px 0px 25px rgba(37,99,235,.35);
+
+}
+
+.stButton>button{
+
+    width:100%;
+
+    background:#2563eb;
+
+    color:white;
+
+    border:none;
+
+    border-radius:12px;
+
+    height:55px;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+}
+
+.stButton>button:hover{
+
+    background:#1d4ed8;
+
+    color:white;
+
+}
+
+hr{
+
+    margin-top:35px;
+
+    margin-bottom:35px;
+
+}
+
+</style>
+""",unsafe_allow_html=True)
 
 # ==========================================================
-# LOAD MODEL DAN SCALER
+# LOAD MODEL
 # ==========================================================
 
 @st.cache_resource
-def load_model_and_scaler():
+def load_gru():
 
-    model = load_model("gru_gold_model.keras")
+    model=load_model("gru_gold_model.keras")
 
-    scaler = joblib.load("scaler.pkl")
+    scaler=joblib.load("scaler.pkl")
 
-    return model, scaler
-
-
-model, scaler = load_model_and_scaler()
-
-# ==========================================================
-# LOAD DATASET
-# ==========================================================
-
-@st.cache_data
-def load_dataset():
-
-    df = pd.read_csv("Dataset_Fix.csv")
-
-    df["date"] = pd.to_datetime(df["date"])
-
-    df = df.sort_values("date")
-
-    df = df.reset_index(drop=True)
-
-    return df
+    return model,scaler
 
 
-df = load_dataset()
+model,scaler=load_gru()
 
 # ==========================================================
-# SIDEBAR
+# HEADER
 # ==========================================================
 
-st.sidebar.header("Informasi Model")
+st.markdown("""
 
-st.sidebar.success("Model berhasil dimuat")
+<div class="title-box">
 
-st.sidebar.markdown(
-"""
-### Model
+<h1>📈 Prediksi Harga Emas Menggunakan GRU</h1>
 
-- GRU
-- 64 Unit
-- Dropout 0.2
-- Dense 1
-- Optimizer Adam
+<h3>Dengan Mempertimbangkan Variabel USD dan Inflasi</h3>
 
----
+<p>
 
-### Dataset
+Upload dataset bulanan kemudian tekan tombol prediksi
+untuk memprediksi harga emas bulan berikutnya menggunakan
+model GRU.
 
-Dataset_Fix.csv
+</p>
 
----
+</div>
 
-### Input Feature
+""",unsafe_allow_html=True)
 
-- gold_open
-- gold_high
-- gold_low
-- gold_close
-- usd_open
-- usd_high
-- usd_low
-- usd_close
-- inflation_rate
-
----
-
-### Target
-
-gold_close
-"""
-)
+st.write("")
 
 # ==========================================================
-# PREVIEW DATASET
+# PILIH DATASET
 # ==========================================================
+
+left,right=st.columns([2,1])
+
+with left:
+
+    option=st.radio(
+
+        "Sumber Dataset",
+
+        [
+
+            "Gunakan Dataset Bawaan",
+
+            "Upload Dataset Baru"
+
+        ],
+
+        horizontal=True
+
+    )
+
+with right:
+
+    st.info("Model : GRU")
+
+# ==========================================================
+# LOAD DATA
+# ==========================================================
+
+if option=="Gunakan Dataset Bawaan":
+
+    df=pd.read_csv("Dataset_Fix.csv")
+
+else:
+
+    uploaded=st.file_uploader(
+
+        "Upload Dataset CSV",
+
+        type=["csv"]
+
+    )
+
+    if uploaded is None:
+
+        st.warning("Silakan upload dataset terlebih dahulu.")
+
+        st.stop()
+
+    df=pd.read_csv(uploaded)
+
+# ==========================================================
+# PREPROCESS
+# ==========================================================
+
+df["date"]=pd.to_datetime(df["date"])
+
+df=df.sort_values("date")
+
+df.reset_index(drop=True,inplace=True)
+
+st.write("")
+
+st.success("✅ Dataset berhasil dimuat")
+
+col1,col2,col3=st.columns(3)
+
+with col1:
+
+    st.metric(
+
+        "Jumlah Data",
+
+        len(df)
+
+    )
+
+with col2:
+
+    st.metric(
+
+        "Tanggal Awal",
+
+        df["date"].min().strftime("%Y-%m")
+
+    )
+
+with col3:
+
+    st.metric(
+
+        "Tanggal Akhir",
+
+        df["date"].max().strftime("%Y-%m")
+
+    )
+
+st.write("")
 
 st.subheader("Preview Dataset")
 
-st.dataframe(df.head(10))
+st.dataframe(
+
+    df.head(),
+
+    use_container_width=True
+
+)
 
 # ==========================================================
 # FEATURE YANG DIGUNAKAN MODEL
 # ==========================================================
 
-features = [
+FEATURES = [
 
     "gold_open",
     "gold_high",
@@ -133,229 +283,365 @@ features = [
 
 ]
 
-data = df[features]
+TARGET = "gold_close"
+
+TIME_STEP = 24
 
 # ==========================================================
-# NORMALISASI DATA
+# AMBIL FEATURE
 # ==========================================================
 
-scaled_data = scaler.transform(data)
+data = df[FEATURES].copy()
+
+scaled = scaler.transform(data)
 
 # ==========================================================
-# TIME STEP
+# TOMBOL PREDIKSI
 # ==========================================================
 
-TIME_STEPS = 24
+st.write("")
 
-last_sequence = scaled_data[-TIME_STEPS:]
+st.subheader("🤖 Prediksi")
 
-X = np.expand_dims(last_sequence, axis=0)
+predict = st.button("🔮 Prediksi Harga Bulan Berikutnya")
 
 # ==========================================================
 # PROSES PREDIKSI
 # ==========================================================
 
-prediction_scaled = model.predict(
-    X,
-    verbose=0
-)
+if predict:
 
-target_index = features.index("gold_close")
+    with st.spinner("Model GRU sedang melakukan prediksi..."):
 
-dummy_prediction = np.zeros(
-    (
-        1,
-        scaled_data.shape[1]
-    )
-)
+        sequence = scaled[-TIME_STEP:]
 
-dummy_prediction[0, target_index] = prediction_scaled[0][0]
+        X = np.array(sequence)
 
-prediction = scaler.inverse_transform(
-    dummy_prediction
-)[0][target_index]
+        X = np.expand_dims(X, axis=0)
+
+        pred_scaled = model.predict(
+
+            X,
+
+            verbose=0
+
+        )
+
+# ==========================================================
+# INVERSE TRANSFORM
+# ==========================================================
+
+        target_index = FEATURES.index(TARGET)
+
+        dummy = np.zeros(
+
+            (
+
+                1,
+
+                len(FEATURES)
+
+            )
+
+        )
+
+        dummy[0, target_index] = pred_scaled[0][0]
+
+        pred = scaler.inverse_transform(dummy)
+
+        prediction = pred[0, target_index]
 
 # ==========================================================
 # HARGA TERAKHIR
 # ==========================================================
 
-last_price = df["gold_close"].iloc[-1]
+        actual = df[TARGET].iloc[-1]
 
-change = prediction - last_price
+        diff = prediction - actual
 
-percent = (change / last_price) * 100
+        pct = (diff / actual) * 100
 
 # ==========================================================
-# HASIL PREDIKSI
+# HASIL
 # ==========================================================
 
-st.header("Hasil Prediksi")
+    st.write("")
 
-col1, col2, col3 = st.columns(3)
+    st.subheader("📊 Hasil Prediksi")
 
-with col1:
+    c1, c2, c3 = st.columns(3)
 
-    st.metric(
-        label="Harga Emas Terakhir",
-        value=f"${last_price:,.2f}"
+    with c1:
+
+        st.markdown("""
+
+        <div class="card">
+
+        <h4>Harga Aktual Terakhir</h4>
+
+        </div>
+
+        """, unsafe_allow_html=True)
+
+        st.metric(
+
+            "",
+
+            f"${actual:,.2f}"
+
+        )
+
+    with c2:
+
+        st.markdown("""
+
+        <div class="card">
+
+        <h4>Prediksi Bulan Berikutnya</h4>
+
+        </div>
+
+        """, unsafe_allow_html=True)
+
+        st.metric(
+
+            "",
+
+            f"${prediction:,.2f}",
+
+            f"{diff:,.2f}"
+
+        )
+
+    with c3:
+
+        st.markdown("""
+
+        <div class="card">
+
+        <h4>Perubahan (%)</h4>
+
+        </div>
+
+        """, unsafe_allow_html=True)
+
+        st.metric(
+
+            "",
+
+            f"{pct:.2f}%"
+
+        )
+
+# ==========================================================
+# KARTU HASIL
+# ==========================================================
+
+    st.write("")
+
+    if prediction > actual:
+
+        warna = "#16a34a"
+
+        status = "📈 Harga diprediksi NAIK"
+
+    elif prediction < actual:
+
+        warna = "#dc2626"
+
+        status = "📉 Harga diprediksi TURUN"
+
+    else:
+
+        warna = "#2563eb"
+
+        status = "➖ Harga diprediksi TETAP"
+
+    st.markdown(
+
+        f"""
+
+        <div style="
+
+        background:{warna};
+
+        padding:30px;
+
+        border-radius:15px;
+
+        text-align:center;
+
+        color:white;
+
+        ">
+
+        <h2>{status}</h2>
+
+        <h1>${prediction:,.2f}</h1>
+
+        <h3>Selisih : {diff:,.2f}</h3>
+
+        <h3>Persentase : {pct:.2f}%</h3>
+
+        </div>
+
+        """,
+
+        unsafe_allow_html=True
+
+    )
+    # ==========================================================
+# GRAFIK PREDIKSI
+# ==========================================================
+
+    st.write("")
+
+    st.subheader("📈 Visualisasi Prediksi")
+
+    chart = df[["date", TARGET]].copy()
+
+    pred_date = chart["date"].iloc[-1] + pd.DateOffset(months=1)
+
+    pred_df = pd.DataFrame({
+
+        "date": [pred_date],
+
+        TARGET: [prediction]
+
+    })
+
+    fig = go.Figure()
+
+    fig.add_trace(
+
+        go.Scatter(
+
+            x=chart["date"],
+
+            y=chart[TARGET],
+
+            mode="lines+markers",
+
+            name="Harga Aktual"
+
+        )
+
     )
 
-with col2:
+    fig.add_trace(
 
-    st.metric(
-        label="Prediksi Bulan Berikutnya",
-        value=f"${prediction:,.2f}",
-        delta=f"{change:,.2f}"
+        go.Scatter(
+
+            x=pred_df["date"],
+
+            y=pred_df[TARGET],
+
+            mode="markers",
+
+            marker=dict(
+
+                size=15,
+
+                color="red"
+
+            ),
+
+            name="Prediksi"
+
+        )
+
     )
 
-with col3:
+    fig.update_layout(
 
-    st.metric(
-        label="Perubahan (%)",
-        value=f"{percent:.2f}%"
+        title="Grafik Harga Emas dan Prediksi",
+
+        xaxis_title="Tanggal",
+
+        yaxis_title="Harga",
+
+        template="plotly_white",
+
+        height=550
+
     )
 
-st.divider()
+    st.plotly_chart(
+
+        fig,
+
+        use_container_width=True
+
+    )
 
 # ==========================================================
 # RINGKASAN
 # ==========================================================
 
-st.subheader("Ringkasan Prediksi")
+    st.write("")
 
-if prediction > last_price:
+    st.subheader("📋 Ringkasan Prediksi")
 
-    st.success(
-        f"""
-Model memprediksi harga emas akan mengalami kenaikan.
+    summary = pd.DataFrame({
 
-Harga terakhir : {last_price:.2f}
+        "Harga Aktual Terakhir": [round(actual, 2)],
 
-Prediksi : {prediction:.2f}
+        "Prediksi": [round(prediction, 2)],
 
-Kenaikan : {change:.2f}
-"""
-    )
+        "Selisih": [round(diff, 2)],
 
-elif prediction < last_price:
+        "Perubahan (%)": [round(pct, 2)]
 
-    st.error(
-        f"""
-Model memprediksi harga emas akan mengalami penurunan.
+    })
 
-Harga terakhir : {last_price:.2f}
+    st.dataframe(
 
-Prediksi : {prediction:.2f}
+        summary,
 
-Penurunan : {abs(change):.2f}
-"""
-    )
+        use_container_width=True,
 
-else:
+        hide_index=True
 
-    st.info(
-        "Prediksi sama dengan harga terakhir."
-    )
-
-st.divider()
-
-# ==========================================================
-# INFORMASI DATA TERBARU
-# ==========================================================
-
-st.subheader("Data Terbaru")
-
-st.dataframe(df.tail(10))
-
-# ==========================================================
-# GRAFIK HARGA EMAS
-# ==========================================================
-
-st.subheader("Grafik Harga Emas")
-
-chart = df[
-    [
-        "date",
-        "gold_close"
-    ]
-].copy()
-
-chart = chart.set_index("date")
-
-st.line_chart(chart)
-
-# ==========================================================
-# STATISTIK DATASET
-# ==========================================================
-
-st.subheader("Statistik Dataset")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-
-    st.metric(
-        "Jumlah Data",
-        len(df)
-    )
-
-with col2:
-
-    st.metric(
-        "Harga Tertinggi",
-        f"${df['gold_close'].max():,.2f}"
-    )
-
-with col3:
-
-    st.metric(
-        "Harga Terendah",
-        f"${df['gold_close'].min():,.2f}"
     )
 
 # ==========================================================
-# DATASET LENGKAP
+# DOWNLOAD
 # ==========================================================
 
-st.subheader("Dataset Lengkap")
+    csv = summary.to_csv(
 
-st.dataframe(
-    df,
-    use_container_width=True
-)
+        index=False
 
-# ==========================================================
-# DOWNLOAD DATASET
-# ==========================================================
+    ).encode("utf-8")
 
-csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
 
-st.download_button(
-    label="📥 Download Dataset",
-    data=csv,
-    file_name="Dataset_Fix.csv",
-    mime="text/csv"
-)
+        "📥 Download Hasil Prediksi",
+
+        csv,
+
+        "hasil_prediksi.csv",
+
+        "text/csv"
+
+    )
 
 # ==========================================================
-# INFORMASI FITUR
+# INFORMASI MODEL
 # ==========================================================
 
-with st.expander("Fitur yang Digunakan Model"):
+st.write("")
 
-    st.write(features)
+with st.expander("ℹ️ Informasi Model"):
 
-# ==========================================================
-# DESKRIPSI MODEL
-# ==========================================================
+    st.markdown("""
 
-with st.expander("Tentang Model"):
+### Model
 
-    st.markdown(
-        """
-Model menggunakan **Gated Recurrent Unit (GRU)**.
+GRU (Gated Recurrent Unit)
 
-Input:
+### Input Feature
+
 - Gold Open
 - Gold High
 - Gold Low
@@ -366,31 +652,56 @@ Input:
 - USD Close
 - Inflation Rate
 
-Target:
-- Gold Close
+### Target
 
-Normalisasi:
-- MinMaxScaler
+Gold Close
 
-Optimizer:
-- Adam
+### Time Step
 
-Loss Function:
-- Mean Squared Error (MSE)
-"""
-    )
+24 Bulan
+
+### Optimizer
+
+Adam
+
+### Loss Function
+
+Mean Squared Error (MSE)
+
+### Normalisasi
+
+MinMaxScaler
+
+""")
 
 # ==========================================================
 # FOOTER
 # ==========================================================
 
-st.divider()
+st.write("")
 
-st.caption(
+st.markdown("---")
+
+st.markdown(
+
 """
-Prediksi Harga Emas Menggunakan Model GRU
-dengan Mempertimbangkan Variabel USD dan Inflasi
+
+<div style="text-align:center">
+
+<b>Prediksi Harga Emas Menggunakan Model GRU</b>
+
+<br>
+
+Dengan Mempertimbangkan Variabel USD dan Inflasi
+
+<br><br>
 
 Universitas AMIKOM Yogyakarta
-"""
+
+</div>
+
+""",
+
+unsafe_allow_html=True
+
 )
