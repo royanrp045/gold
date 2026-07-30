@@ -134,9 +134,18 @@ selected_period = st.selectbox(
     available_dates[TIME_STEPS:]
 )
 
-selected_index = df[
-    df["date"].dt.strftime("%Y-%m") == selected_period
-].index[0]
+# =====================================================
+# INFORMASI PERIODE TERPILIH
+# =====================================================
+
+selected_data = df.iloc[selected_index]
+
+st.markdown("### Informasi Periode Terpilih")
+
+st.metric(
+    label="Harga Emas Bulan Terpilih",
+    value=f"{selected_data['gold_close']:.2f} USD"
+)
 
 # =====================================================
 # AMBIL DATA 12 BULAN
