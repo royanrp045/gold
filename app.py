@@ -91,8 +91,12 @@ TIME_STEPS = 12
 
 @st.cache_resource
 def load_saved_model(model_path):
-
-    return load_model(model_path)
+    try:
+        return load_model(model_path, compile=False)
+    except Exception as e:
+        st.error(f"Gagal memuat model: {model_path}")
+        st.exception(e)
+        st.stop()
 
 
 @st.cache_resource
