@@ -30,7 +30,7 @@ berdasarkan model yang telah dilatih.
 # LOAD DATASET
 # =====================================================
 
-df = pd.read_csv("Dataset_Fix.csv")
+df = pd.read_csv("final_dataset.csv")
 
 df["date"] = pd.to_datetime(df["date"])
 
