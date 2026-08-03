@@ -77,6 +77,45 @@ MODEL_INFO = {
     }
 
 }
+# =====================================================
+# HASIL EVALUASI MODEL
+# =====================================================
+
+EVALUATION = {
+
+    "Gold Only": {
+        "MAE": 96.609436,
+        "RMSE": 127.835662,
+        "MAPE": 4.155019,
+        "R2": 0.962421,
+        "Ranking": 1
+    },
+
+    "Gold + USD": {
+        "MAE": 106.559669,
+        "RMSE": 142.722516,
+        "MAPE": 4.595371,
+        "R2": 0.953159,
+        "Ranking": 2
+    },
+
+    "Gold + Inflation": {
+        "MAE": 102.711115,
+        "RMSE": 150.144724,
+        "MAPE": 4.158116,
+        "R2": 0.948160,
+        "Ranking": 3
+    },
+
+    "Gold + USD + Inflation": {
+        "MAE": 107.718445,
+        "RMSE": 152.359015,
+        "MAPE": 4.500043,
+        "R2": 0.946620,
+        "Ranking": 4
+    }
+
+}
 
 # =====================================================
 # LOAD FILE
@@ -210,3 +249,26 @@ if st.button("🔮 Prediksi Harga Emas", use_container_width=True):
         label="Harga Prediksi Emas",
         value=f"{prediction:.2f} USD"
     )
+    st.markdown("---")
+st.subheader("📊 Evaluation Metrics")
+
+eval_result = EVALUATION[scenario]
+
+evaluation_df = pd.DataFrame({
+    "Metric": [
+        "MAE",
+        "RMSE",
+        "MAPE (%)",
+        "R²",
+        "Ranking"
+    ],
+    "Value": [
+        f"{eval_result['MAE']:.6f}",
+        f"{eval_result['RMSE']:.6f}",
+        f"{eval_result['MAPE']:.6f}",
+        f"{eval_result['R2']:.6f}",
+        eval_result["Ranking"]
+    ]
+})
+
+st.table(evaluation_df)
